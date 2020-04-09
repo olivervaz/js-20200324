@@ -38,7 +38,6 @@
 ## Задачи: 
 
 * ["Notification" компонент](https://notification-js-20200203.glitch.me)
-* "ColumnChart" компонент
 * Из учебника: [Прототип после создания](https://learn.javascript.ru/task/prototype-after-new)
 
 ## Дополнительные материалы:
