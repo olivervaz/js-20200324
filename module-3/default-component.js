@@ -25,6 +25,6 @@ class DefaultComponent {
 }
 
 const defaultComponent = new DefaultComponent();
-const element = document.getElementById('root');
+let element = document.getElementById('root');
 
 element.append(defaultComponent.element);
