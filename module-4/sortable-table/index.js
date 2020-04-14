@@ -54,7 +54,7 @@ export default class SortableTable {
   getTableBody() {
     return `
     <div data-elem="body" class="sortable-table__body">
-        ${this.getBodyRows()}
+        ${this.data && this.getBodyRows()|| this.emptyBodyTemplate}
     </div>`
 
   }
