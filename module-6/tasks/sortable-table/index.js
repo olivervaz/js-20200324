@@ -155,12 +155,11 @@ export default class SortableTable {
   }
 
   async loadData(id, order) {
-    console.log('loading data')
-    return await fetchJson(`${this.url}/${this.buildQueryParam(id, order)}`);
-  }
-
-  buildQueryParam(id, order) {
-    return `?_sort=${id}&_order=${order}&_start=0&_end=${this.pageSize}`
+    this.url.searchParams.set('_sort', id);
+    this.url.searchParams.set('_order', order);
+    this.url.searchParams.set('_start','0');
+    this.url.searchParams.set('_end', this.pageSize)
+    return await fetchJson(this.url);
   }
 
   sortLocally(id, order) {
