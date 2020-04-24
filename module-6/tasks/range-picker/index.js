@@ -25,7 +25,7 @@ export default class RangePicker {
 
   get template() {
     return `
-    <div class="rangepicker rangepicker_open">
+    <div class="rangepicker">
         <div class="rangepicker__input" data-elem="input">
            ${this.inputTemplate}
         </div>
@@ -37,8 +37,8 @@ export default class RangePicker {
 
   get inputTemplate() {
     return `
-      <span data-elem="from">${this.selected.from.toLocaleDateString()}</span> -
-      <span data-elem="to">${this.selected.to.toLocaleDateString()}</span>
+      <span data-elem="from">${this.selected.from.toLocaleDateString('fi')}</span> -
+      <span data-elem="to">${this.selected.to.toLocaleDateString('fi')}</span>
     `
   }
 
@@ -102,13 +102,13 @@ export default class RangePicker {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = this.template;
     const element = wrapper.firstElementChild;
-
     this.element = element;
+    console.log(this.element);
     this.subElements = this.getSubElements(element);
 
     this.initEventListeners();
 
-    this.hightlightSelectedDates();
+    this.highlightSelectedDates();
 
   }
 
@@ -124,7 +124,6 @@ export default class RangePicker {
 
   initEventListeners() {
     const {input, selector} = this.subElements;
-
     document.addEventListener('pointerdown', this.onOuterClick, true);
     input.addEventListener('pointerdown', this.onInputClick);
     selector.addEventListener("pointerdown", this.onArrowClick);
@@ -144,7 +143,7 @@ export default class RangePicker {
     const input = event.target.closest('[data-elem="input"]');
 
     if (input) {
-      this.element.querySelector('.rangepicker').classList.toggle('rangepicker_open');
+      this.element.classList.toggle('rangepicker_open');
     }
   }
 
@@ -169,54 +168,65 @@ export default class RangePicker {
 
   onDateClick = (event) => {
     const isDate = event.target.classList.contains('rangepicker__cell');
-
     const selectedDate = new Date(event.target.dataset.value);
 
     if (isDate) {
+      if (this.selectingFrom) {
+        this.clearDatesHighlighting();
+        this.selectingFrom = false;
+        this.selected.from = selectedDate;
+        this.selected.to = selectedDate;
+        this.highlightSelectedDates();
+        this.subElements.input.innerHTML = this.inputTemplate;
+      } else if (!this.selectingFrom && selectedDate > this.selected.from) {
+        this.selectingFrom = true;
+        this.selected.to = selectedDate;
+        this.highlightSelectedDates();
+        this.subElements.input.innerHTML = this.inputTemplate;
+      } else {
+        this.selectingFrom = true;
+        this.selected.to = this.selected.from;
+      }
     }
   }
 
-
-  hightlightSelectedDates(from, to) {
+  highlightSelectedDates() {
     //adds appropriate classes to cells
-    const cells =  this.element.querySelectorAll('.rangepicker__cell');
-    const fromDate  = (from || this.selected.from).getTime();
-    const toDate = (to || this.selected.to).getTime();
+    const cells = this.element.querySelectorAll('.rangepicker__cell');
+    const fromDate = this.selected.from.getTime();
+    const toDate = this.selected.to.getTime();
 
     cells.forEach(item => {
-        const itemDate = new Date(item.dataset.value).getTime();
+      const itemDate = new Date(item.dataset.value).getTime();
 
-        if (itemDate > fromDate && itemDate < toDate) {
-          item.classList.add('rangepicker__selected-between')
-        }
-        else if (itemDate === fromDate) {
-          item.classList.add('rangepicker__selected-from')
-        }
-        else if(itemDate === toDate){
-          item.classList.add('rangepicker__selected-from')
-        }
-      })
+      if (itemDate > fromDate && toDate && itemDate < toDate) {
+        item.classList.add('rangepicker__selected-between')
+      } else if (itemDate === fromDate) {
+        item.classList.add('rangepicker__selected-from')
+      } else if (itemDate === toDate) {
+        item.classList.add('rangepicker__selected-from')
+      }
+    })
   }
 
-  clearDatesHighlighting(){
-    this.element
-      .querySelectorAll('.rangepicker__cell')
-      .forEach(item => {
-        item.classList.remove(
-          'rangepicker__selected-between',
-          'rangepicker__selected-from',
-          'rangepicker__selected-between'
-        )
-      })
-  }
+  clearDatesHighlighting() {
+    const cells = this.element.querySelectorAll('.rangepicker__cell');
 
+    cells.forEach(item => {
+      item.classList.remove(
+        'rangepicker__selected-between',
+        'rangepicker__selected-from',
+        'rangepicker__selected-between'
+      )
+    })
+  }
 
   remove() {
     this.element.remove();
   }
 
   destroy() {
-    const {input,selector} = this.subElements;
+    const {input, selector} = this.subElements;
     this.remove();
     document.removeEventListener('pointerdown', this.onOuterClick, true);
     input.removeEventListener('pointerdown', this.onInputClick);
