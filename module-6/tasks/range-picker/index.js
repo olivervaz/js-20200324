@@ -24,14 +24,11 @@ export default class RangePicker {
   }
 
   get template() {
-    return `
-    <div class="rangepicker">
+    return `<div class="rangepicker">
         <div class="rangepicker__input" data-elem="input">
            ${this.inputTemplate}
         </div>
-        <div class="rangepicker__selector" data-elem="selector">
-            ${this.selectorTemplate}
-        </div>
+        <div class="rangepicker__selector" data-elem="selector"></div>
     </div>`
   }
 
@@ -43,28 +40,32 @@ export default class RangePicker {
   }
 
   get selectorTemplate() {
-    //new class rangepicker__selector-control has been added
+    const dateFrom = new Date(this.showDateFrom);
+    const dateTo = new Date(this.showDateFrom);
+
+    dateTo.setMonth(dateFrom.getMonth() + 1);
+
     return `
           <div class="rangepicker__selector-arrow"></div>
           <div class="rangepicker__selector-control rangepicker__selector-control-left"></div>
           <div class="rangepicker__selector-control rangepicker__selector-control-right"></div>
           <div class="rangepicker__calendar">
             <div class="rangepicker__month-indicator">
-              <time datetime="${this.selected.from.toLocaleString('default', {month: 'long'})}">
-                 ${this.selected.from.toLocaleString('default', {month: 'long'})}
+              <time datetime="${dateFrom.toLocaleString('default', {month: 'long'})}">
+                 ${dateFrom.toLocaleString('default', {month: 'long'})}
               </time>
             </div>
             ${this.weekDaysTemplate}
-            ${this.getMonthDates(this.selected.from.getMonth(), this.selected.from.getFullYear())}
+            ${this.getMonthDates(dateFrom.getMonth(), dateFrom.getFullYear())}
           </div>
           <div class="rangepicker__calendar">
            <div class="rangepicker__month-indicator">
-              <time datetime="${this.selected.from.toLocaleString('default', {month: 'long'})}">
-                 ${this.selected.to.toLocaleString('default', {month: 'long'})}
+              <time datetime="${dateTo.toLocaleString('default', {month: 'long'})}">
+                 ${dateTo.toLocaleString('default', {month: 'long'})}
               </time>
             </div>
             ${this.weekDaysTemplate}
-            ${this.getMonthDates(this.selected.to.getMonth(), this.selected.to.getFullYear())}
+            ${this.getMonthDates(dateTo.getMonth(), dateTo.getFullYear())}
           </div>`
   }
 
@@ -91,8 +92,8 @@ export default class RangePicker {
   `
   }
 
-  getDateTemplate(day, mounth, year) {
-    const date = new Date(year, mounth, day).toISOString();
+  getDateTemplate(day, month, year) {
+    const date = new Date(year, month, day).toISOString();
     return `
      <button type="button" class="rangepicker__cell" data-value="${date}">${day}</button>
     `
@@ -103,13 +104,9 @@ export default class RangePicker {
     wrapper.innerHTML = this.template;
     const element = wrapper.firstElementChild;
     this.element = element;
-    console.log(this.element);
     this.subElements = this.getSubElements(element);
 
     this.initEventListeners();
-
-    this.highlightSelectedDates();
-
   }
 
   getSubElements(element) {
@@ -132,34 +129,36 @@ export default class RangePicker {
 
 
   onOuterClick = (event) => {
-    const picker = this.element.querySelector('.rangepicker_open');
+    const isVisible = this.element.classList.contains('rangepicker_open');
+    const isInput = this.element.contains(event.target);
 
-    if (picker && !event.target.closest('.rangepicker')) {
-      picker.classList.remove('rangepicker_open');
+    if (isVisible && !isInput) {
+      this.element.classList.remove('rangepicker_open');
     }
+
   }
 
   onInputClick = (event) => {
-    const input = event.target.closest('[data-elem="input"]');
+    const isInput = this.element.contains(event.target);
 
-    if (input) {
+    if (isInput) {
       this.element.classList.toggle('rangepicker_open');
+      this.subElements.selector.innerHTML = this.selectorTemplate;
     }
   }
 
   onArrowClick = (event) => {
     const isArrow = event.target.classList.contains('rangepicker__selector-control');
     const arrow = event.target;
+
     if (isArrow) {
 
       switch (true) {
         case arrow.classList.contains('rangepicker__selector-control-right'):
-          this.selected.from.setMonth(this.selected.from.getMonth() + 1);
-          this.selected.to.setMonth(this.selected.from.getMonth() + 1);
+          this.showDateFrom.setMonth(this.showDateFrom.getMonth() + 1);
           break;
         case arrow.classList.contains('rangepicker__selector-control-left'):
-          this.selected.from.setMonth(this.selected.from.getMonth() - 1);
-          this.selected.to.setMonth(this.selected.from.getMonth() - 1);
+          this.showDateFrom.setMonth(this.showDateFrom.getMonth() - 1);
           break;
       }
       this.subElements.selector.innerHTML = this.selectorTemplate;
