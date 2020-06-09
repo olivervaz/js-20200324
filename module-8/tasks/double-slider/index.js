@@ -56,7 +56,8 @@ export default class DoubleSlider {
     //prevent highlighting;
     event.preventDefault();
 
-    if (thumb.dataset.element === 'from') {
+    //get shift value for preventing centering;
+    if (thumb.dataset.element === 'thumbLeft') {
       this.shiftX = right - event.clientX;
     } else {
       this.shiftX = left - event.clientX;
@@ -74,6 +75,30 @@ export default class DoubleSlider {
   }
 
   onMouseMove = (event) => {
+    const {inner, progress} = this.subElements;
+    const {left: innerLeft, right:innerRight, width} = inner.getBoundingClientRect();
+    const thumb = this.moving;
+
+    let newLeft = event.clientX - this.shiftX - innerLeft;
+    let newRight = event.clientX - this.shiftX - innerRight;
+
+    // keep thumb in bar borders;
+    if (newLeft < 0) {
+      newLeft = 0;
+    }
+    let rightEdge = inner.offsetWidth - thumb.offsetWidth;
+
+    if (newLeft > rightEdge) {
+      newLeft = rightEdge;
+    }
+
+    if(thumb.dataset.element === 'thumbLeft'){
+      thumb.style.left = newLeft + 'px';
+      progress.style.left = thumb.style.left;
+    } else {
+      thumb.style.right =  - newRight + 'px';
+      progress.style.right = thumb.style.right;
+    }
 
   }
 
