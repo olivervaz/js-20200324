@@ -51,7 +51,8 @@ export default class SortableTable {
     const {id, order} = this.sorted;
     const windowBottom = document.documentElement.getBoundingClientRect().bottom;
 
-    if (windowBottom < document.documentElement.clientHeight + 100) {
+    if (!this.isLoading && windowBottom < document.documentElement.clientHeight + 100) {
+      this.isLoading = true;
       this.fromSize = this.toSize;
       this.toSize = this.toSize + 20;
       const data = this.data = await this.loadData(id, order);
@@ -63,6 +64,7 @@ export default class SortableTable {
         window.removeEventListener('scroll', this.onScroll);
       }
     }
+    this.isLoading = false;
   }
 
   getTable() {
