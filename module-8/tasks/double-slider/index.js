@@ -34,6 +34,7 @@ export default class DoubleSlider {
   }
 
   render() {
+    const {from, to} = this.selected;
     const wrapper = document.createElement('div');
     wrapper.innerHTML = this.template;
     this.element = wrapper.firstElementChild;
@@ -41,6 +42,10 @@ export default class DoubleSlider {
     this.subElements = this.getSubElements(this.element);
 
     this.initEventListeners();
+
+    if(from !== this.min|| to !== this.max){
+      this.updateSlider();
+    }
   }
 
   initEventListeners() {
@@ -78,38 +83,37 @@ export default class DoubleSlider {
     const {inner, progress, thumbLeft, thumbRight, from, to} = this.subElements;
     const thumb = this.moving;
 
-    const newLeft = this.calculatePositionPersantage(event.clientX, 'left');
-    const newRight = this.calculatePositionPersantage(event.clientX, 'right');
-    const boundaryRight = parseFloat(thumbRight.style.right) || 0;
-    const boundaryLeft = parseFloat(thumbLeft.style.left) || 0;
-
+    const newLeft = this.calculatePositionPercentage(event.clientX, 'left');
+    const newRight = this.calculatePositionPercentage(event.clientX, 'right');
+    const boundaryRight = parseInt(thumbRight.style.right) || 0;
+    const boundaryLeft = parseInt(thumbLeft.style.left) || 0;
 
     if (thumb.dataset.element === 'thumbLeft' && !this.isBoundary(newLeft, boundaryRight)) {
-      this.calculatePrice(newLeft, newRight);
       from.innerHTML = this.formatValue(this.selected.from);
-      thumb.style.left = newLeft + '%';
-      progress.style.left = thumb.style.left;
+      progress.style.left = thumb.style.left = newLeft + '%';
 
     } else if (thumb.dataset.element === 'thumbRight' && !this.isBoundary(newRight, boundaryLeft)) {
-      this.calculatePrice(newLeft, newRight);
       to.innerHTML = this.formatValue(this.selected.to);
-      thumb.style.right = newRight + '%';
-      progress.style.right = thumb.style.right;
+      progress.style.right = thumb.style.right = newRight + '%';
+
     }
+    this.calculatePrice();
   }
 
   isBoundary(value, boundaryValue) {
     return value + boundaryValue > 100 || value < 0;
   }
 
-  calculatePrice(left, right) {
+  calculatePrice() {
+    const { left } = this.subElements.thumbLeft.style;
+    const { right } = this.subElements.thumbRight.style;
     const range = this.max - this.min;
 
-    this.selected.from = Math.floor(range / 100 * (100 + left));
-    this.selected.to = Math.floor(range / 100 * (100 - right) + this.min);
+    this.selected.from = Math.round(range / 100 * (100 + parseFloat(left)));
+    this.selected.to = Math.round(range / 100 * (100 - parseFloat(right)) + this.min);
   }
 
-  calculatePositionPersantage(clientX, direction){
+  calculatePositionPercentage(clientX, direction){
     const {inner} = this.subElements;
     const {left: innerLeft, right: innerRight, width} = inner.getBoundingClientRect();
 
@@ -121,6 +125,18 @@ export default class DoubleSlider {
       default:
         return;
     }
+  }
+
+  updateSlider(){
+    const rangeTotal = this.max - this.min;
+    const left = Math.round((this.selected.from - this.min) / rangeTotal * 100) + '%';
+    const right = Math.round((this.max - this.selected.to) / rangeTotal * 100) + '%';
+
+    this.subElements.progress.style.left = left;
+    this.subElements.progress.style.right = right;
+
+    this.subElements.thumbLeft.style.left = left;
+    this.subElements.thumbRight.style.right = right;
   }
 
   getSubElements(element) {
