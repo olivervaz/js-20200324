@@ -1,4 +1,8 @@
 import escapeHtml from "../../utils/escape-html.js";
+import fetchJson from "../../utils/fetch-json.js"
+
+const BACKEND_URL = 'https://course-js.javascript.ru';
+const IMGUR_CLIENT_ID = "57d53d6bc4bf316";
 
 export default class ProductFormComponent {
   element;
@@ -15,32 +19,55 @@ export default class ProductFormComponent {
     categories: []
   };
 
-  onSubmit = event => {
+  onSubmit =  event => {
     event.preventDefault();
-    this.dispatchEvent()
+    this.save();
   };
 
   uploadImage = () => {
-    const {imageListContainer, fileInputList} = this.subElements;
-    const input = this.renderUploadImageInput();
+    const fileInput = document.createElement('input');
 
-    input.addEventListener('change', event => {
-      const [file] = event.target.files;
-      const reader = new FileReader();
+    fileInput.type = 'file';
+    fileInput.accept = "image/*";
 
-      reader.onload = ({target}) => {
-        imageListContainer.append(this.getImageTemplate({ url: target.result, name: file.name}));
-      };
-      reader.readAsDataURL(file);
+    fileInput.onchange = async () => {
+      const [file] = fileInput.files;
 
-      fileInputList.append(input);
-    })
-    input.click();
-  }
+      if (file) {
+        const formData = new FormData();
+        const { imageUploadBtn, imageListContainer } = this.subElements;
 
-  constructor(formData = {}) {
-    this.formData = {...this.defaultFormData, ...formData};
+        formData.append('image', file);
 
+        imageUploadBtn.classList.add('is-loading');
+        imageUploadBtn.disabled = true;
+
+        const result = await fetchJson('https://api.imgur.com/3/image', {
+          method:  'POST',
+          headers: {
+            Authorization: `Client-ID ${IMGUR_CLIENT_ID}`
+          },
+          body: formData,
+        });
+
+        imageListContainer.append(this.getImageTemplate({url: result.data.link, source: file.name}));
+
+        imageUploadBtn.classList.remove('is-loading');
+        imageUploadBtn.disabled = false;
+
+        // Remove input from body
+        fileInput.remove();
+      }
+    };
+
+    // must be in body for IE
+    fileInput.hidden = true;
+    document.body.appendChild(fileInput);
+    fileInput.click();
+  };
+
+  constructor(productId) {
+    this.productId = productId;
     this.render();
   }
 
@@ -71,7 +98,7 @@ export default class ProductFormComponent {
 
         <div class="form-group form-group__half_left">
           <label class="form-label">Категория</label>
-          ${this.categories}
+          ${this.categoriesTemplate}
         </div>
 
         <div class="form-group form-group__wide" data-element="sortable-list-container">
@@ -129,13 +156,11 @@ export default class ProductFormComponent {
                   class="button-primary-outline"
                   data-element ="productFormSaveBtn">Сохранить товар</button>
         </div>
-
       </form>
-    </div>
-    `
+    </div>`
   }
 
-  get categories() {
+  get categoriesTemplate() {
     return `
     <select class="form-control" name="subcategory">
       ${this.renderCategoriesOptions()}
@@ -154,11 +179,11 @@ export default class ProductFormComponent {
     wrapper.innerHTML = `
       <li class="products-edit__imagelist-item sortable-list__item" style="">
         <input type="hidden" name="url" value="${imageObj.url}">
-          <input type="hidden" name="source" value="${imageObj.name}">
+          <input type="hidden" name="source" value="${imageObj.source}">
                   <span>
                      <img src="./icon-grab.svg" data-grab-handle="" alt="grab">
-                     <img class="sortable-table__cell-img" alt="${imageObj.name}" src="${imageObj.url}">
-                     <span>${imageObj.name}</span>
+                     <img class="sortable-table__cell-img" alt="${imageObj.source}" src="${imageObj.url}">
+                     <span>${imageObj.source}</span>
                   </span>
             <button type="button">
                 <img src="./icon-trash.svg" data-delete-handle="" alt="delete">
@@ -168,11 +193,21 @@ export default class ProductFormComponent {
     return wrapper.firstElementChild;
   }
 
-  render() {
+  async render() {
+    const categoriesPromise = this.loadCategoriesList();
+    const productPromise = this.productId
+      ? this.loadProductData(this.productId)
+      : Promise.resolve([this.defaultFormData]);
+
+    const [categoriesData, productResponse] = await Promise.all([categoriesPromise, productPromise]);
+    const [productData] = productResponse;
+
+    this.formData = productData;
+    this.categories = categoriesData;
+
+
     const element = document.createElement('div');
-
     element.innerHTML = this.template;
-
     this.element = element.firstElementChild;
     this.subElements = this.getSubElements(element);
 
@@ -180,8 +215,12 @@ export default class ProductFormComponent {
   }
 
   renderCategoriesOptions() {
-    return this.formData.categories
-      .map(category => `<option value="${category.value}">${category.text}</option>`).join('\n')
+    return this.categories
+      .map(category => {
+        return category.subcategories.map(child => {
+          return `<option value="${child.id}">${category.title + " > " + child.title}</option>`
+        }).join('\\n');
+      }).join('\n');
   }
 
   renderImages() {
@@ -192,7 +231,8 @@ export default class ProductFormComponent {
     const wrapper = document.createElement('div');
 
     wrapper.innerHTML = `
-      <input hidden name="images" type="file" accept="image/*">
+          <input
+        } hidden name="images" type="file" accept="image/*">
     `;
 
     return wrapper.firstElementChild;
@@ -245,6 +285,26 @@ export default class ProductFormComponent {
         event.target.closest('li').remove();
       }
     })
+  }
+
+  async save(){
+    const product = this.getInputsData();
+
+    const result = fetchJson(BACKEND_URL + '/api/rest/products',{
+      method:  'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(product)
+    })
+  }
+
+  async loadCategoriesList () {
+    return await fetchJson(`${BACKEND_URL}/api/rest/categories?_sort=weight&_refs=subcategory`);
+  }
+
+  async loadProductData (productId) {
+    return await fetchJson(`${BACKEND_URL}/api/rest/products?id=${productId}`);
   }
 
   destroy() {
