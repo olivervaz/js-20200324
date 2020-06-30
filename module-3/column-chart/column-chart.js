@@ -7,12 +7,10 @@ export default class ColumnChart {
     data = [],
     label = '',
     link = '',
-    value = 0
   } = {}) {
     this.data = data;
     this.label = label;
     this.link = link;
-    this.value = value;
 
     this.render();
   }
@@ -34,6 +32,10 @@ export default class ColumnChart {
     return this.link ? `<a class="column-chart__link" href="${this.link}">View all</a>` : '';
   }
 
+  getTotalValue(data){
+    return data.reduce((acum,next)=> acum + next, 0);
+  }
+
   get template () {
     return `
       <div class="column-chart column-chart_loading" style="--chart-height: ${this.chartHeight}">
@@ -43,7 +45,7 @@ export default class ColumnChart {
         </div>
         <div class="column-chart__container">
           <div data-element="header" class="column-chart__header">
-            ${this.value}
+            ${this.label === 'sales'? '$':''}${this.getTotalValue(this.data)}
           </div>
           <div data-element="body" class="column-chart__chart">
             ${this.getColumnBody(this.data)}
@@ -76,9 +78,9 @@ export default class ColumnChart {
     }, {});
   }
 
-  update ({headerData, bodyData}) {
-    this.subElements.header.textContent = headerData;
-    this.subElements.body.innerHTML = this.getColumnBody(bodyData);
+  update (data) {
+    this.subElements.header.textContent = this.getTotalValue(data);
+    this.subElements.body.innerHTML = this.getColumnBody(data);
   }
 
   destroy() {
