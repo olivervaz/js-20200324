@@ -35,14 +35,14 @@ export default class SortableList {
       const index = [...elementParent.children].indexOf(elementBelow);
       const {top} = elementParent.firstElementChild.getBoundingClientRect();
       const {bottom} = elementParent.lastElementChild.getBoundingClientRect();
+
       if (clientY < top) {
         this.movePlaceholderTo(index);
-      }else{
-          this.movePlaceholderTo(index + 1);
+      } else {
+        this.movePlaceholderTo(index + 1);
       }
     }
   }
-
 
   onPointerUp = (event) => {
     const index = [...this.element.children].indexOf(this.placeholder);
@@ -148,5 +148,4 @@ export default class SortableList {
     this.element.removeEventListener('pointerdown', this.onPointerDown)
     this.element.remove();
   }
-
 }
